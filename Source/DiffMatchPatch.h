@@ -172,6 +172,17 @@ NSUInteger match_locationOfMatchInTextWithOptions(NSString *text, NSString *patt
 
 NSArray *patch_patchesFromTexts(NSString *text1, NSString *text2);
 
+/**
+ * Generate an array of DMPatches from two texts
+ *
+ * @param text1        The first text
+ * @param text2        The second text
+ * @param highQuality  YES: slow,  NO: fast
+ * @param timeLimit    time limit for generating patches,
+ * @return An array of DMPatches
+ */
+
+NSArray *patch_patchesFromTextsNew(NSString *text1, NSString *text2, BOOL highQuality, NSTimeInterval timeLimit);
 
 /**
  * Take a list of patches and return a textual representation.
@@ -192,7 +203,6 @@ NSString *patch_patchesToText(NSArray *patches);
  */
 
 NSArray *patch_parsePatchesFromText(NSString *text, NSError **error);
-
 
 /**
  * Merge a set of patches onto the text.  Return a patched text, as well

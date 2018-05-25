@@ -135,7 +135,7 @@ NSMutableArray *diff_diffsBetweenTextsWithProperties(NSString *text1, NSString *
 	
 	
 	// Check for equality (speedup).
-	NSMutableArray *diffs;
+	NSMutableArray *diffs = nil;
 	
 	if([text1 isEqualToString:text2]) {
 		diffs = [NSMutableArray array];
@@ -154,12 +154,26 @@ NSMutableArray *diff_diffsBetweenTextsWithProperties(NSString *text1, NSString *
 	text2 = [text2 substringFromIndex:commonlength];
 	
 	// Trim off common suffix (speedup).
-	commonlength = (NSUInteger)diff_commonSuffix((__bridge CFStringRef)text1, (__bridge CFStringRef)text2);
-	NSString *commonsuffix = [text1 substringFromIndex:text1.length - commonlength];
-	text1 = [text1 substringToIndex:(text1.length - commonlength)];
-	text2 = [text2 substringToIndex:(text2.length - commonlength)];
+	NSUInteger commonlength2 = (NSUInteger)diff_commonSuffix((__bridge CFStringRef)text1, (__bridge CFStringRef)text2);
+	NSString *commonsuffix = [text1 substringFromIndex:text1.length - commonlength2];
+	text1 = [text1 substringToIndex:(text1.length - commonlength2)];
+	text2 = [text2 substringToIndex:(text2.length - commonlength2)];
 	
-	// Compute the diff on the middle block.
+    // Add to avoid endless recursive calls
+    if(commonlength == 0 && commonlength2 == 0) {
+        diffs = [NSMutableArray array];
+        if(text1.length != 0)
+        {
+            [diffs addObject:[DMDiff diffWithOperation:DIFF_DELETE andText:text1]];
+        }
+        if(text2.length != 0)
+        {
+            [diffs addObject:[DMDiff diffWithOperation:DIFF_INSERT andText:text2]];
+        }
+        return diffs;
+    }
+
+    // Compute the diff on the middle block.
 	diffs = diff_computeDiffsBetweenTexts(text1, text2, properties);
 	
 	// Restore the prefix and suffix.
@@ -1778,6 +1792,14 @@ NSArray *patch_patchesFromTexts(NSString *text1, NSString *text2)
 	return patch_patchesFromTextsWithProperties(text1, text2, properties);
 }
 
+NSArray *patch_patchesFromTextsNew(NSString *text1, NSString *text2, BOOL highQuality, NSTimeInterval timeLimit)
+{
+    PatchProperties properties = patch_defaultPatchProperties();
+    properties.diffProperties.checkLines = !highQuality;
+    properties.diffProperties.deadline = timeLimit;
+    NSArray *diffs = diff_diffsBetweenTextsWithOptions(text1, text2, highQuality, timeLimit);
+    return patch_patchesFromDiffs(diffs, properties);
+}
 
 /**
  * Compute a list of patches to turn text1 into text2.
